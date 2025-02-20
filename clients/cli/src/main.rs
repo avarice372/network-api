@@ -1,16 +1,16 @@
 // Copyright (c) 2024 Nexus. All rights reserved.
 
-// mod analytics;
+mod analytics;
 mod config;
 // mod prover;
 mod flops;
+mod memory_stats;
 #[path = "proto/nexus.orchestrator.rs"]
 mod nexus_orchestrator;
 mod node_id_manager;
 mod orchestrator_client;
 mod setup;
 mod utils;
-mod memory_stats;
 
 // use setup::SetupResult;
 
@@ -27,6 +27,7 @@ use nexus_sdk::{
 // Update the import path to use the proto module
 use orchestrator_client::OrchestratorClient;
 
+use crate::config::Environment;
 use clap::Parser;
 use colored::Colorize;
 use sha3::{Digest, Keccak256};
@@ -145,7 +146,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Ok(_) => (),
                         Err(e) => println!("\tError: {}", e),
                     }
+
+                    analytics::track(
+                        "proof_log_cli".to_string(),
+                        format!("Completed proof iteration #{}", proof_count),
+                        serde_json::json!({
+                            "prover_id": node_id,
+                            "proof_count": proof_count,
+                        }),
+                        false,
+                        &environment,
+                    );
+
                     proof_count += 1;
+
                     tokio::time::sleep(std::time::Duration::from_secs(4)).await;
                 }
             }
